@@ -1,25 +1,25 @@
 <?php
 
 /**
- * Created by PhpStorm.
- * User: Administrator
- * Date: 2016/6/2/002
- * Time: 21:09
+ * è·¯ç”±ç±»ç”¨äºæŒ‡å®šè·¯ç”±è§„åˆ™
+ * @version 0.0.2
+ * @author nineytbang@gmail.com
  */
 class Router
 {
 
-    private static $ruleTable = array(
-        '(:num)'=>'/\d+/',
-        '(:any)'=>'/\S+/'
-    );
-    public static $ruleType = array('post','get');
+    private static $ruleTable = [
+        '(:num)'=>'/^\d+$/',
+        '(:any)'=>'/^\S+$/'
+    ];
+    private static $err404 = ['handler'=>''];
+    public static $ruleType = ['post','get'];
     public static $rules;
 
     /**
-     * Ìí¼ÓÒ»¸ögetÂ·ÓÉ¹æÔò
-     * @param $rule Â·ÓÉ¹æÔò
-     * @param $callback »Øµ÷
+     * æ·»åŠ ä¸€ä¸ªgetè·¯ç”±è§„åˆ™
+     * @param $rule è·¯ç”±è§„åˆ™
+     * @param $callback å›è°ƒ
      */
     public static function get($rule,$callback)
     {
@@ -27,9 +27,9 @@ class Router
     }
 
     /**
-     * Ìí¼ÓpostÂ·ÓÉ
-     * @param string $rule ¹æÔò
-     * @param function $callback »Øµ÷
+     * æ·»åŠ postè·¯ç”±
+     * @param string $rule è§„åˆ™
+     * @param function $callback å›è°ƒ
      */
     public static function post($rule,$callback)
     {
@@ -37,7 +37,7 @@ class Router
     }
 
     /**
-     * ·µ»Øµ±Ç°ÇëÇó·½Ê½µÄ·½Ê½post get
+     * è¿”å›å½“å‰è¯·æ±‚æ–¹å¼çš„æ–¹å¼post get
      * @return string
      */
     public static function getMethodType()
@@ -46,11 +46,11 @@ class Router
     }
 
     /**
-     * Í¨ÓÃÅäÖÃ¹æÔò
+     * é€šç”¨é…ç½®è§„åˆ™
      * @param $type post get
-     * @param $rule ¹æÔò
-     * @param $callback »Øµ÷
-     * TODO:ÒÔºó¿ÉÄÜÊµÏÖÌí¼Ó¿ØÖÆÆ÷·½·¨ HomeController@index·½·¨
+     * @param $rule è§„åˆ™
+     * @param $callback å›è°ƒ
+     * TODO:ä»¥åå¯èƒ½å®ç°æ·»åŠ æ§åˆ¶å™¨æ–¹æ³• HomeController@indexæ–¹æ³•
      */
     private static function setRule($type,$rule,$callback)
     {
@@ -67,7 +67,38 @@ class Router
         throw new Exception('is arguments error');
     }
 
-    //±éÀú¹æÔò
+    /**
+     * é…ç½®é”™è¯¯404çš„è§„åˆ™
+     * @param $callback ä¸€ä¸ªå›è°ƒæ–¹æ³•æˆ–è€…æ˜¯ä¸€ä¸ªå­—ç¬¦ä¸²
+     */
+    public static function setError404($callback)
+    {
+        if(is_string($callback) || is_callable($callback))
+        {
+            return static::$err404['handler'] = $callback;
+        }
+        throw new Exception('callback is not callable');
+    }
+
+    /**
+     * 404é”™è¯¯
+     */
+    public static function err404()
+    {
+        header('HTTP/1.1 404 Not Found');
+        header('status:404 Not Found');
+        if(static::$err404['handler'])
+        {
+            if(is_callable(static::$err404['handler']))
+            {
+                call_user_func(static::$err404['handler']);
+            }
+            return;
+        }
+        die('not found 404');
+    }
+
+    //éå†è§„åˆ™
     public static function eachRule($ruleArray,$pathinfoToArray)
     {
         $flag = 0;
@@ -92,34 +123,47 @@ class Router
     }
 
     /**
-     * ÅäÖÃÂ·ÓÉ¹æÔò
+     * é…ç½®è·¯ç”±è§„åˆ™
+     * @param String $pathinfo è·¯ç”±è§„åˆ™
+     * @param String $pathinfoToArray
+     * @param String $_pathinfo
      */
     private static function matchRule($pathinfo,$pathinfoToArray,$_pathinfo)
     {
         $count = 'm_'.count($pathinfoToArray);
         $type  = static::getMethodType();
-        $countArray = static::$rules[$type][$count];
-        //Èç¹û´æÔÚ /article ÀàËÆÕâÑùµÄÖ±½Ó·µ»Ø
-        if(isset($countArray[$_pathinfo]))
+        $countArray = isset(static::$rules[$type][$count])?static::$rules[$type][$count]:false;
+        if($countArray)
         {
-            return call_user_func($countArray[$_pathinfo]);
-        }
-        //Æ¥Åä¹æÔò
-        array_walk($countArray,function($func,$rule) use($pathinfoToArray,$_pathinfo,$pathinfo){
-            $ruleArray = explode('/',$rule);
-            array_shift($ruleArray);
-            $flagParam = static::eachRule($ruleArray,$pathinfoToArray);
-            if($flagParam['flag'] == count($pathinfoToArray))
+            //å¦‚æœå­˜åœ¨ /article ç±»ä¼¼è¿™æ ·çš„ç›´æ¥è¿”å›
+            if(isset($countArray[$_pathinfo]))
             {
-                call_user_func_array($func,$flagParam['param']);
+                call_user_func($countArray[$_pathinfo]);
                 return;
             }
-        });
+            else
+            {
+                //åŒ¹é…è§„åˆ™
+                foreach($countArray as $rule=>$func)
+                {
+                    $ruleArray = explode('/',$rule);
+                    array_shift($ruleArray);
+                    $flagParam = static::eachRule($ruleArray,$pathinfoToArray);
+//                    var_dump($flagParam);
+                    if($flagParam['flag'] == count($pathinfoToArray))
+                    {
+                        return call_user_func_array($func,$flagParam['param']);
+                    }
+                }
+            }
+        }
+        static::err404();
+
     }
 
 
     /**
-     * TODO:½âÎöuriÒÔºó¿ÉÄÜ µ¥¶À·Ö³öÀ´
+     * TODO:è§£æuriä»¥åå¯èƒ½ å•ç‹¬åˆ†å‡ºæ¥
      */
     private static function parseUri()
     {
@@ -140,8 +184,9 @@ class Router
     }
 
 
-
-    //ÒÔºóÊµÏÖ×ÊÔ´
+    /**
+     * TODO:ä¸‹ä¸ªç‰ˆæœ¬å®ç°èµ„æº
+     */
     public static function resource()
     {
 
@@ -149,34 +194,34 @@ class Router
 
 }
 
+try{
 
-//Router::get('/hello',function(){
-    echo 'goodjobs';
-});
+    Router::setError404(function(){
+        header('Charset:utf-8');
+        echo '<h1>Sorry page not found</h1>';
+    });
 
-// /article/1
-Router::get('/article/(:num)',function($id){
-    echo $id;
-});
+    Router::get('/user/(:num)',function($id){
+        echo $id;
+    });
+    Router::get('/users/(:num)',function($id){
+        echo $id;
+    });
+    Router::get('/article/(:num)',function($id){
+        echo 'get';
+        echo $id;
+    });
 
-Router::get('/users/(:num)',function($id){
-    echo $id;
-});
+    Router::get('/user/(:any)/(:num)',function($username,$aid){
+        echo $username;
+        echo '<br />';
+        echo $aid;
+    });
+    Router::run();
+}
+catch(Exception $e)
+{
+    echo $e->getMessage();
+}
 
-Router::get('/users/get/(:num)',function(){
-    echo 'aaa';
-});
-
-Router::get('/users/l100',function(){
-    echo 'aaa';
-});
-
-
-Router::get('/home/(:any)/article/(:num)',function($username,$id){
-    echo $username,$id;
-});
-
-//Router::get('/useri')
-
-Router::run();
 
