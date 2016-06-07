@@ -99,7 +99,7 @@ class Router
     }
 
     //遍历规则
-    public static function eachRule($ruleArray,$pathinfoToArray)
+    private static function eachRule($ruleArray,$pathinfoToArray)
     {
         $flag = 0;
         $param = array();
@@ -204,6 +204,7 @@ try{
     Router::get('/user/(:num)',function($id){
         echo $id;
     });
+
     Router::get('/users/(:num)',function($id){
         echo $id;
     });
